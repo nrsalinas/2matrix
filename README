@@ -1,0 +1,25 @@
+2matrix.pl version 1.0 24 May 2013
+
+==================================================
+REQUIREMENTS
+
+Perl interpreter.
+
+Systematic wisdom.
+
+==================================================
+INSTRUCTIONS
+
+Morphological characters can be processed using a NONA dataset or a .csv file. In the latter case you should follow the following formatting rules (see the example file "morpho_matrix.csv"):
+
+a. Each cell should contain the coding information of a single character of a given taxon.
+
+c. First column should contain the taxa names, starting in the third row.
+
+b. Character names should be specified in the first row, starting in the second column (first column will be discarded). Any character can be used, but it is highly recommended to used exclusively ASCII characters. Characters that can be problematic when parse to TNT, Garli, MrBayes, or RAxML will be replaced with underscores.
+
+c. Second row should contain additivity information. If the character is non-additive, you should write either "non-additive" or "unordered" in this cell.  If the character is additive the list of states ordered according the additivity sequence should be given. States should be separated by spaces in this list (e.g., "One_petal two_petals three_petals").
+
+==================================================
+CONTACT
+
