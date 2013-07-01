@@ -1,5 +1,8 @@
 2matrix.pl version 1.0 24 May 2013
 
+2matrix.pl is a PERL script for merging and translating phylogenetic datasets. Input datasets can be either DNA alignments (FASTA format) or morphological matrices (a XREAD file or a .csv table, see below for the specification of the latter). Available output formats include XREAD, extended PHYLIP (RAxML) and NEXUS (the latter being compatible with Garli and MrBayes). Indel characters can be coded using the "simple" gap coding method of SIMMONS, M. P., AND H. OCHOTERENA. 2000. Gaps as characters in sequence-based phylogenetic analysis. Systematic Biology 49: 369-381.
+
+
 ==================================================
 REQUIREMENTS
 
@@ -7,19 +10,42 @@ Perl interpreter.
 
 Systematic wisdom.
 
+
 ==================================================
 INSTRUCTIONS
 
-Morphological characters can be processed using a NONA dataset or a .csv file. In the latter case you should follow the following formatting rules (see the example file "morpho_matrix.csv"):
+If morphological characters are to be read from a .csv file, users should follow these formatting rules (see the example file "morpho_matrix.csv"):
 
-a. Each cell should contain the coding information of a single character of a given taxon.
+a. Character states cannot consist of characters other than letters, numbers, hyphens, and underscores. 
 
-c. First column should contain the taxa names, starting in the third row.
+b. Each cell should contain the scores of a single character for a given taxon. Polymorphic entries should list the states separated by spaces. Missing values can be represented with either question marks or hyphens. 
 
-b. Character names should be specified in the first row, starting in the second column (first column will be discarded). Any character can be used, but it is highly recommended to used exclusively ASCII characters. Characters that can be problematic when parse to TNT, Garli, MrBayes, or RAxML will be replaced with underscores.
+c. The first column should contain taxon names, starting in the third row.
 
-c. Second row should contain additivity information. If the character is non-additive, you should write either "non-additive" or "unordered" in this cell.  If the character is additive the list of states ordered according the additivity sequence should be given. States should be separated by spaces in this list (e.g., "One_petal two_petals three_petals").
+d. Character names should be placed in the first row, starting in the second column (first column will be discarded). Characters that may be problematic in TNT, Garli, MrBayes, or RAxML will be replaced with underscores (e.g. spaces and hyphens).
+
+e. The second row should contain additivity information. If the character is non-additive, users should write either "non-additive" or "unordered" in this cell.  If the character is additive the list of states ordered according the additivity sequence should be given. States should be separated by spaces in this list (e.g. "One_petal two_petals three_petals").
+
+f. Do not include commas within the text of a cell.
+
+
+==================================================
+WARNINGS
+
+Besides Garli 2.0 and MrBayes 3.2.1, NEXUS output is not guaranteed to be read and executed by any other program that accepts NEXUS files (e.g. PAUP 4b*).  
+
 
 ==================================================
 CONTACT
+
+Damon P. Little
+dlittle@nybg.org
+
+Nelson R. Salinas
+nsalinas@nybg.org
+
+
+
+
+
 
