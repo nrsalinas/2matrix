@@ -1,6 +1,6 @@
 2matrix.pl version 1.0 24 May 2013
 
-2matrix.pl is a PERL script for merging and translating phylogenetic datasets. Input datasets can be either DNA/RNA/amino acid alignments (FASTA format) or morphological matrices (a XREAD file or a csv table, see below for the specification of the latter). Available output formats include XREAD, extended PHYLIP (RAxML) and NEXUS (the latter being compatible with Garli and MrBayes). Indel characters can be coded using the "simple" gap coding method of Simmons and Ochoterena (2000. Gaps as characters in sequence-based phylogenetic analysis. Systematic Biology 49: 369-381).
+2matrix.pl is a Perl script for merging and translating phylogenetic datasets. Input datasets can be either DNA/RNA/amino acid alignments (FASTA format) or morphological matrices (a xread file or a csv table, see below for the specification of the latter). Available output formats include xread, extended PHYLIP (RAxML) and NEXUS (the latter being compatible with Garli and MrBayes). Indel characters can be coded using the "simple" gap coding method of Simmons and Ochoterena (2000. Gaps as characters in sequence-based phylogenetic analysis. Systematic Biology 49: 369-381).
 
 
 
@@ -35,9 +35,9 @@ f. Do not include commas within the text of a cell.
 ==================================================
 EXAMPLE
 
-A reconstruction of the matrix used by Doyle and Endress (2000. Morphological phylogenetic analysis of basal angiosperms: comparison and combination with molecular data. International Journal of Plant Sciences 161: S121-S153) is included in the distribution. The files example.csv and example.ss include the morphological data (csv and XREAD format, respectively), sequences are included in example-18S.fasta, example-atpB.fasta, and example-rbcL.fasta. To create the combined matrix in tnt format, invoke the command:
+A reconstruction of the matrix used by Doyle and Endress (2000. Morphological phylogenetic analysis of basal angiosperms: comparison and combination with molecular data. International Journal of Plant Sciences 161: S121-S153) is included in the distribution. The files example.csv and example.ss include the morphological data (csv and xread format, respectively), sequences are included in example-18S.fasta, example-atpB.fasta, and example-rbcL.fasta. To create the combined matrix in TNT format, invoke the command:
 
-2matrix.pl -i example.csv -i example-18S.fasta -i example-atpB.fasta -i example-rbcL.fasta -s 18S -s atpB -s rbcL -o x -n example 
+2matrix.pl -i example.csv -i example-18S.fasta -i example-atpB.fasta -i example-rbcL.fasta -s 18S -s atpB -s rbcL -o x -n example -d
 
 
 
