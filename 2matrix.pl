@@ -28,6 +28,7 @@ use strict;
 
 
 ############################### CHECK INPUT
+my $aa = ();
 my $outputName = ();
 my $phylip = 0;
 my $nexus = 0;
@@ -83,7 +84,7 @@ for(my $k = $#ARGV; $k >= 0; $k--){
 	}
 my $j = $#stem;
 for(my $k = $#infile; $k >= 0; $k--){
-	if($infile[$k] =~ m/\.fasta$|\.fst$|\.fa$|\.fas$|\.fna$|\.ffn$|\.frn$/){
+	if($infile[$k] =~ m/\.fasta$|\.faa$|\.fst$|\.fa$|\.fas$|\.fna$|\.ffn$|\.frn$/){
 		if($#stem == -1){
 			$stem{$infile[$k]} = 'sequence';
 			} elsif(length($stem[$j])){
@@ -92,7 +93,14 @@ for(my $k = $#infile; $k >= 0; $k--){
 				} else {
 					die("The number of character stem names does not match the number of input files. Character names will probably not make much sense.\n");
 					}
-		}
+		if($infile[$k] =~ m/\.faa$/){
+			$aa->[$k] = 1;
+			} else {
+				$aa->[$k] = 0;
+				}
+		} else {
+			$aa->[$k] = 0;
+			}
 	}
 undef(@stem);	
 
@@ -147,7 +155,7 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 									}
 								}
 						}
-					} elsif($gotMatrix == 0) { ############################### matrix lines					
+					} elsif($gotMatrix == 0) { ### matrix lines					
 						if($line =~ m/^;/){
 							$gotMatrix = 1;
 							} else {
@@ -219,9 +227,13 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 									$charNames = 1;
 									$line =~ s/cn {\d+ //;
 									push(@names, $line);
-									} elsif(($charNames == 1) && ($line =~ m/^{/)){
-										$line =~ s/{\d+ //;
-										push(@names, $line);
+									} elsif($charNames == 1){
+										if($line =~ m/^{\d+/){
+											$line =~ s/{\d+ //;
+											push(@names, $line);
+											} else { ### end of character/state names
+												last;
+												}
 										}
 							@{$pTc->{$infile[$f]}} = @names;
 							$partSize->[$f] = $characters;
@@ -370,9 +382,9 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 								}
 							}
 						}
-					my @charKeys = keys(%{$charStates});
+					my @charKeys = sort({$charStates->{$b} <=> $charStates->{$a}} keys(%{$charStates}));
 					for(my $p = $#charKeys; $p >= 0; $p--){
-						$charNames[$d-1] .= ' ' . $charKeys[$p] . '_(' . $charStates->{$charKeys[$p]} . ')';
+						$charNames[$d-1] .= ' ' . $charKeys[$p];
 						}
 					push(@{$pTc->{$infile[$f]}}, "$charNames[$d-1];");
 					}
@@ -395,7 +407,7 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 				} else {
 					if($codeIndel && !$quoteIndel){
 						$quoteIndel = "\nindel characters coded using 2xread using the \"simple gap coding\" method of SIMMONS AND OCHOTERENA. 2000. Gaps as characters in sequence-based phylogenetic analysis. Systematic Biology 49: 369-381";
-						}
+						}	
 					my $seq = ();
 					@bases = ();	
 					while(my $line = <INFILE>){
@@ -407,7 +419,10 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 								$matrix->[$terms][0] = $line;
 								if(length($seq)){
 									$seq = uc($seq);
-									$seq =~ tr/ACGTNVDBHWMRKSYU\-//cd;		
+									$seq =~ tr/ABCDEFGHIKLMNOPQRSTUVWXYZ\-//cd;
+									if($seq =~ m/E|F|I|L|O|P|Q|X|Z/){
+										$aa->[$f] = 1;
+										}
 									@bases = split(//, $seq);
 									for(my $i = $#bases; $i >= 0; $i--){
 										$matrix->[$terms-1][$i+1] = $bases[$i];
@@ -421,7 +436,10 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 							}
 						}
 					$seq = uc($seq);
-					$seq =~ tr/ACGTNVDBHWMRKSYU\-//cd;		
+					$seq =~ tr/ABCDEFGHIKLMNOPQRSTUVWXYZ\-//cd;
+					if($seq =~ m/E|F|I|L|O|P|Q|X|Z/){
+						$aa->[$f] = 1;
+						}
 					@bases = split(//, $seq);
 					for(my $i = $#bases; $i >= 0; $i--){
 						$matrix->[$terms-1][$i+1] = $bases[$i];
@@ -475,13 +493,13 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 			my $ends->[0][0] = ();
 			for(my $k = $#{$matrix}; $k >= 0; $k--){
 				for(my $j = 1; $j <= $chars; $j++){
-					if($matrix->[$k][$j] =~ m/A|C|G|T|N|V|D|B|H|W|M|R|K|S|Y|U/){
+					if($matrix->[$k][$j] =~ m/A|B|C|D|E|F|G|H|I|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z/){
 						$ends->[$k][0] = $j;
 						last;
 						}
 					}	
 				for(my $j = $chars; $j >= 1; $j--){
-					if($matrix->[$k][$j] =~ m/A|C|G|T|N|V|D|B|H|W|M|R|K|S|Y|U/){
+					if($matrix->[$k][$j] =~ m/A|B|C|D|E|F|G|H|I|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z/){
 						$ends->[$k][1] = $j;
 						last;
 						}	
@@ -497,7 +515,7 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 					my $score = '?';
 					if(($fiveEnd > $ends->[$k][0]) && ($threeEnd < $ends->[$k][1])){
 						for(my $j = $fiveEnd; $j <= $threeEnd; $j++){
-							if($matrix->[$k][$j] =~ m/A|C|G|T|N|V|D|B|H|W|M|R|K|S|Y|U/){
+							if($matrix->[$k][$j] =~ m/A|B|C|D|E|F|G|H|I|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z/){
 								$score = 0;
 								last;
 								}
@@ -546,7 +564,13 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 	my $buffer = ();
 	if($xread == 1){
 		############################### xread preample
-		$buffer = "xread\n'$quote'\n";
+		for(my $r = $#infile; $r >= 0; $r--){
+			if($aa->[$r]){
+				$buffer = "nstates 32;\n";
+				last;
+				}
+			}
+		$buffer .= "xread\n'$quote'\n";
 		my $chars = ();
 		for(my $r = $#infile; $r >= 0; $r--){
 			$chars += $partIndels->[$r];
@@ -562,20 +586,27 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 				if(!exists($tTpTd->{$taxa[$q]}->{$infile[$r]})){
 					$buffer .= '?' x ($partIndels->[$r] + $partSize->[$r]);
 					} else {
-						my $bases = $tTpTd->{$taxa[$q]}->{$infile[$r]};
-						$bases =~ s/R/[AG]/g;
-						$bases =~ s/Y/[CT]/g;
-						$bases =~ s/M/[AC]/g;
-						$bases =~ s/K/[GT]/g;
-						$bases =~ s/S/[CG]/g;
-						$bases =~ s/W/[AT]/g;
-						$bases =~ s/H/[ACT]/g;
-						$bases =~ s/B/[CGT]/g;
-						$bases =~ s/V/[ACG]/g;
-						$bases =~ s/D/[AGT]/g;
-						$bases =~ s/N/[ACGT]/g;
-						$bases =~ tr/ACGTU/01233/;
-						$buffer .= $bases;
+						my $residue = $tTpTd->{$taxa[$q]}->{$infile[$r]};
+						if($aa->[$r]){
+							$residue =~ s/B/[DN]/;
+							$residue =~ s/X/[ACDEFGHIKLMNOPQRSTUVWY]/;
+							$residue =~ s/Z/[EQ]/;
+							$residue =~ tr/ACDEFGHIKLMNOPQRSTUVWY/0123456789ABCDEFGHIJKL/;
+							} else {
+								$residue =~ s/R/[AG]/g;
+								$residue =~ s/Y/[CT]/g;
+								$residue =~ s/M/[AC]/g;
+								$residue =~ s/K/[GT]/g;
+								$residue =~ s/S/[CG]/g;
+								$residue =~ s/W/[AT]/g;
+								$residue =~ s/H/[ACT]/g;
+								$residue =~ s/B/[CGT]/g;
+								$residue =~ s/V/[ACG]/g;
+								$residue =~ s/D/[AGT]/g;
+								$residue =~ s/N/[ACGT]/g;
+								$residue =~ tr/ACGTU/01233/;
+								}
+						$buffer .= $residue;
 						if(length($buffer > 10000)){
 							print(FILE $buffer);
 							$buffer = ();
@@ -615,11 +646,15 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 					} elsif((${$pTc->{$infile[$r]}}[$k] =~ m/indel/)){
 						$buffer .= " absent present /;\n";
 						} else {
-							$buffer .= " A C G T /;\n";
+							if($aa->[$r]){
+								$buffer .= " A C D E F G H I K L M N O P Q R S T U V W Y /;\n";
+								} else {
+									$buffer .= " A C G T /;\n";
+									}
 							}
 				$j++;		
 				}
-			}	
+			}
 
 		print(FILE $buffer);
 		}
@@ -647,12 +682,22 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 						}
 					}
 				} elsif(($codeIndel == 1) && ($partIndels->[$r] >= 1)){
-					$partitions .= 'DNA, p' . $partCounter . '=' . ($chars + 1) . '-' . ($chars + $partSize->[$r]) . "\nBIN, p" . ($partCounter + 1) . '=' . ($chars + $partSize->[$r] + 1) . '-' . ($chars + $partSize->[$r] + $partIndels->[$r]) . "\n";
+					if($aa->[$r]){
+						$partitions .= 'WAG, p';
+						} else {
+							$partitions .= 'DNA, p';
+							}
+					$partitions .= $partCounter . '=' . ($chars + 1) . '-' . ($chars + $partSize->[$r]) . "\nBIN, p" . ($partCounter + 1) . '=' . ($chars + $partSize->[$r] + 1) . '-' . ($chars + $partSize->[$r] + $partIndels->[$r]) . "\n";
 					$chars += $partIndels->[$r];
 					$chars += $partSize->[$r];
 					$partCounter += 2;
 					} else {
-						$partitions .= 'DNA, p' . $partCounter . '=' . ($chars + 1) . '-' . ($chars + $partSize->[$r]) . "\n";
+						if($aa->[$r]){
+							$partitions .= 'WAG, p';
+							} else {
+								$partitions .= 'DNA, p';
+								}
+						$partitions .= $partCounter . '=' . ($chars + 1) . '-' . ($chars + $partSize->[$r]) . "\n";
 						$chars += $partSize->[$r];
 						$partCounter += 1;
 						}
@@ -723,7 +768,12 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 						}
 				} elsif(($codeIndel == 1) && ($partIndels->[$r] >= 1)){
 					$setsBlock .= "\tcharset Part" . $partCounter . ' = ' . ($chars + 1) . '-' . ($chars + $partSize->[$r]) . "\n\tcharset Part" . ($partCounter + 1) . ' = ' . ($chars + $partSize->[$r] + 1) . '-' . ($chars + $partSize->[$r] + $partIndels->[$r]) . "\n";
-					$dataType .= 'DNA:' . ($chars + 1) . '-' . ($chars + $partSize->[$r]) . ',standard:' . ($chars + $partSize->[$r] + 1) . '-' . ($chars + $partSize->[$r] + $partIndels->[$r]);
+					if($aa->[$r]){
+						$dataType .= 'protein:';
+						}else{
+							$dataType .= 'DNA:';
+							}
+					$dataType .= ($chars + 1) . '-' . ($chars + $partSize->[$r]) . ',standard:' . ($chars + $partSize->[$r] + 1) . '-' . ($chars + $partSize->[$r] + $partIndels->[$r]);
 					$chars += ($partIndels->[$r] + $partSize->[$r]);
 					$chunks .= 'chunk' . $partCounter . ': Part' . $partCounter . ', chunck' . ($partCounter + 1) . ': Part' . ($partCounter + 1);
 					$partCounter += 2;
@@ -735,7 +785,12 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 							}
 					} else{
 						$setsBlock .= "\tcharset Part" . $partCounter . ' = ' . ($chars + 1) . '-' . ($chars + $partSize->[$r]) . "\n";
-						$dataType .= 'DNA:' . ($chars + 1) . '-' . ($chars + $partSize->[$r]);
+						if($aa->[$r]){
+							$dataType .= 'protein:';
+							}else{
+								$dataType .= 'DNA:';
+								}
+						$dataType .= ($chars + 1) . '-' . ($chars + $partSize->[$r]);
 						$chars += $partSize->[$r];
 						$chunks .= 'chunk' . $partCounter . ': Part' . $partCounter;
 						$partCounter++;
@@ -768,8 +823,6 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 		my %symbols = ();
 		my %symbolsAdditive = ();
 		my $jj = 0;
-		my $bayesCharLabels =  "\tcharlabels\n";
-		my $bayesStateLabels = "\tstatelabels\n";
 		for(my $r = $#infile; $r >= 0; $r--){
 			my $j = 0;
 			my $i = 0;
@@ -786,28 +839,20 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 						$j++;
 						$jj++;
 						$charLabels .= "\t\t[$j] $bits[0] \n";
-						$bayesCharLabels .= "\t\t[$jj] $bits[0] \n";
 						$stateLabels .= "\t\t$j";
-						$bayesStateLabels .= "\t\t$jj";
 						for(my $l = 1; $l <= $#bits; $l++){
 							$stateLabels .= " $bits[$l]";
-							$bayesStateLabels .= " $bits[$l]";
 							}
 						$stateLabels .= ",\n";
-						$bayesStateLabels .= ",\n";
 						} elsif($add->[$r][$k] == 1){
 							$i++;
 							$jj++;
 							$charLabelsAdditive .= "\t\t[$i] $bits[0] \n";
-							$bayesCharLabels .= "\t\t[$jj] $bits[0] \n";
 							$stateLabelsAdditive .= "\t\t$i";
-							$bayesStateLabels .= "\t\t$jj";
 							for(my $l = 1; $l <= $#bits; $l++){
 								$stateLabelsAdditive .= " $bits[$l]";
-								$bayesStateLabels .= " $bits[$l]";
 								}
 							$stateLabelsAdditive .= ",\n";
-							$bayesStateLabels .= ",\n";
 							}
 					}
 				$charsBlock = "begin characters;\n\tdimensions nchar=$j;\n\tformat datatype=standard symbols=\"this-is-where-the-list-of-symbols-will-added-by-2matrix\" missing=? gap=-;\n" . $charLabels . "\t\t;\n" . $stateLabels . "\t\t;\n\tmatrix\n";
@@ -822,12 +867,18 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 							$j++;
 							$jj++;
 							$charLabels .= "\t\t[$j] $bits[0] \n";
-							$bayesCharLabels .= "\t\t[$jj] $bits[0] \n";
-							$stateLabels .= "\t\t$j A C G T,\n";
-							$bayesStateLabels .= "\t\t$jj A C G T,\n";
+							if($aa->[$r]){
+								$stateLabels .= "\t\t$j A C D E F G H I K L M N O P Q R S T U V W Y,\n";
+								} else {
+									$stateLabels .= "\t\t$j A C G T,\n";
+									}
 							}
 						}
-					$charsBlock = "begin characters;\n\tdimensions nchar=$partSize->[$r];\n\tformat datatype=DNA missing=? gap=-;\n" . $charLabels . "\t\t;\n" . $stateLabels . "\t\t;\n\tmatrix\n";
+					if($aa->[$r]){
+						$charsBlock = "begin characters;\n\tdimensions nchar=$partSize->[$r];\n\tformat datatype=protein missing=? gap=-;\n" . $charLabels . "\t\t;\n" . $stateLabels . "\t\t;\n\tmatrix\n";
+						} else {
+							$charsBlock = "begin characters;\n\tdimensions nchar=$partSize->[$r];\n\tformat datatype=DNA missing=? gap=-;\n" . $charLabels . "\t\t;\n" . $stateLabels . "\t\t;\n\tmatrix\n";
+							}
 					$j = $partSize->[$r];
 					}
 			for(my $q = $#taxa; $q >= 0; $q--){
@@ -911,9 +962,7 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 					$j++;
 					$jj++;
 					$charLabels .= "\t\t[$j] $bits[0] \n";
-					$bayesCharLabels .= "\t\t[$jj] $bits[0] \n";
 					$stateLabels .= "\t\t$j absent present,\n";
-					$bayesStateLabels .= "\t\t$jj absent present,\n";
 					}
 
 				############################### get indel data from partition $r
@@ -955,7 +1004,7 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 			}
 		$dataBlock =~ tr/[]/{}/;
 		$dataBlock .= "\t\t;\nend;\n";
-		$mrBayesBuffer .= "begin characters;\n\tdimensions nchar=$jj;\n\tformat datatype=standard symbols=\"" . join('', sort({$a <=> $b} keys(%symbols))) . "\" missing=? gap=-;\n" . $bayesCharLabels . "\t\t;\n" . $bayesStateLabels . "\t\t;\n\tend;\n" . $dataBlock;
+		$mrBayesBuffer .= $dataBlock;
 		$dataBlock = ();
 
 		$mrBayesBuffer .= $setsBlock;
@@ -1007,10 +1056,20 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 							$partCounter += 2;
 							}
 				} elsif(($codeIndel == 1) && ($partIndels->[$r] >= 1)){
-					$garliBuffer .= '[model'. ($partCounter + 1) . "]\ndatatype = nucleotide\nratematrix = 6rate\nstatefrequencies = estimate\nratehetmodel = gamma\nnumratecats = 4\ninvariantsites = estimate\n\n[model" . ($partCounter + 2) . "]\ndatatype = standard\nratematrix = 1rate\nstatefrequencies = equal\nratehetmodel = none\nnumratecats = 1\ninvariantsites = none\n\n";
+					if($aa->[$r]){
+						$garliBuffer .= '[model'. ($partCounter + 1) . "]\ndatatype = aminoacid\nratematrix = WAG\n";
+						}else{
+							$garliBuffer .= '[model'. ($partCounter + 1) . "]\ndatatype = nucleotide\nratematrix = 6rate\n";
+							}
+					$garliBuffer .= "statefrequencies = estimate\nratehetmodel = gamma\nnumratecats = 4\ninvariantsites = estimate\n\n[model" . ($partCounter + 2) . "]\ndatatype = standard\nratematrix = 1rate\nstatefrequencies = equal\nratehetmodel = none\nnumratecats = 1\ninvariantsites = none\n\n";
 					$partCounter += 2;
 					} else{
-						$garliBuffer .= '[model'. ($partCounter + 1) . "]\ndatatype = nucleotide\nratematrix = 6rate\nstatefrequencies = estimate\nratehetmodel = gamma\nnumratecats = 4\ninvariantsites = estimate\n\n";
+						if($aa->[$r]){
+							$garliBuffer .= '[model'. ($partCounter + 1) . "]\ndatatype = aminoacid\nratematrix = WAG\n";
+							}else{
+								$garliBuffer .= '[model'. ($partCounter + 1) . "]\ndatatype = nucleotide\nratematrix = 6rate\n";
+								}
+						$garliBuffer .= "statefrequencies = estimate\nratehetmodel = gamma\nnumratecats = 4\ninvariantsites = estimate\n\n";
 						$partCounter++;
 						}
 			}
@@ -1032,8 +1091,8 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 		print("USAGE: 2matrix.pl -i <infile_1> [ -i <infile_2>... ] -n <root-name> [ -d ]\n");
 		print("\t -o n|x|p [ -s <stem-name_1> [ -s <stem-name_2> ] ... ]\n\n");
 		print("WHERE:\n\n\t-d\tDo NOT code indels.\n\n");
-		print("\t-i\tSpecifies one or more aligned FASTA file(s) and <root-name>\n");
-		print("\t\tis a single token. If several matrices are to be merged,\n");
+		print("\t-i\tSpecifies a matrix (aligned FASTA, csv, or xread cf.\n");
+		print("\t\tHennig86/NONA/WinClada). If several matrices are to be merged,\n");
 		print("\t\tfilenames should be input with multiple -i flags.\n\n");
 		print("\t-n\t<root-name> for output files.\n\n");
 		print("\t-o\tSets the output format: 'x' for XREAD, 'n' for NEXUS,\n\t\tand 'p' for extended PHYLIP. If PHYLIP format is selected,\n");
@@ -1042,7 +1101,7 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 		print("\t\tcompatible with both Garli (<root-name>.garli.nex) and MrBayes\n");
 		print("\t\t(<root-name>.mrbayes.nex) will be created. Additionally, a\n");
 		print("\t\tGarli configuration file will be automatically generated\n\t\t(<root-name>.conf).\n\n");
-		print("\t-s\t<stem-name> for naming nucleotide characters (XREAD and NEXUS\n\t\tonly).\n\n");  
+		print("\t-s\t<stem-name> for naming sequence characters (XREAD and NEXUS\n\t\tonly).\n\n");  
 		}
 		
 		
