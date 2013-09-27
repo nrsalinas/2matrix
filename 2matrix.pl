@@ -55,26 +55,30 @@ for(my $k = $#ARGV; $k >= 0; $k--){
 			} else{
 				die("Could not read $ARGV[$k+1].\n");
 				}
+		next;		
 		}
 	if($ARGV[$k] eq '-n'){
 		$outputName = $ARGV[$k+1];
+		next;
 		}
 	if($ARGV[$k] eq '-d'){
 		$codeIndel = 0;
+		next;
 		}
 	if($ARGV[$k] eq '-o'){
-		if($ARGV[$k+1] =~ m/x/){
+		if($ARGV[$k+1] =~ m/x/i){
 			$xread = 1;
 			}
-		if($ARGV[$k+1] =~ m/n/){
+		if($ARGV[$k+1] =~ m/n/i){
 			$nexus = 1;
 			}
-		if($ARGV[$k+1] =~ m/p/){
+		if($ARGV[$k+1] =~ m/p/i){
 			$phylip = 1;
 			}
 		if(!($xread || $nexus || $phylip)){
 			die("You must set an output format.\n");
 			}
+		next;	
 		}
 	if($ARGV[$k] eq '-s'){
 		if(length($ARGV[$k+1])){
@@ -259,6 +263,10 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 				my $missingError = 0;
 				chomp($firstline);
 				$firstline =~ tr/ /_/;
+				
+				
+				
+				
 				my @charNames = ();
 				sub antiQuote {
 					my $quote = $_[0];
@@ -286,27 +294,36 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 							$quoteEnd = -1;
 							} 
 						}
-					return(join(',', @output));				
+					my $output = join(',', @output);
+					$output =~ s/$quote//g;
+					return($output);				
 					}
 				if($firstline =~ m/"/){
 					@charNames = split(/,/, antiQuote('"', $firstline));						
 					} else {
 						@charNames = split(/,/, $firstline);						
 						}
+				$partSize->[$f] = $#charNames;		
 				my $fieldCounter = $#charNames;		
 				shift(@charNames);
-				my $lineCounter = 0;
+				my $lineCounter = 1;
 				while(my $line = <INFILE>){
 					$line =~ s/[\r\n]+$//;
-					if($line){
+					$line =~ tr/\/\-/\_\_/;
+					$line =~ tr/[A-z][0-9]\_\ ",?\.//cd;
+					if(length($line)){
 						$debug .= "Line $lineCounter: $line\n";
-						if($lineCounter == 1){
-							my @fields = ();
-							@fields = split(/,/, $line);
+						my @fields = ();
+						if($line =~ m/"/){
+							@fields = split(/,/, antiQuote('"', $line));
+							} else {
+								@fields = split(/,/, $line);
+								}
+						if($lineCounter == 2){
 							for(my $w = 1; $w <= $#fields; $w++){
-								if($fields[$w] =~ m/non\-additive|unordered/i){
+								if($fields[$w] =~ m/non_additive|unordered/i){
 									$add->[$f][$w-1] = 0;
-									} elsif((length($fields[$w]) >= 2) && ($fields[$w] =~ m/ /)){
+									} elsif((length($fields[$w]) >= 2) && ($fields[$w] =~ m/ /)){										
 										my @additiveStates = split(/ /,$fields[$w]);
 										for(my $x = $#additiveStates; $x >= 0; $x--){
 											$statesOrder->{$additiveStates[$x]} = $x;
@@ -316,24 +333,13 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 											die("Accepted labels for character additivity are \"additive\", \"non-additive\", \"ordered\", and \"unordered\"\n\n"); 
 											}
 								}
-							} elsif($lineCounter > 1){
-								my @fields = ();
-								$line =~ tr/[A-z][0-9]\_\ ",?-//cd;
-								if($line =~ m/"/){
-									@fields = split(/,/, antiQuote('"', $line));
-									} else {
-										@fields = split(/,/, $line);
-										}
-								if($fieldCounter != $#fields){
-									die("It appears that rows have different number of columns in $infile[$f].\nThis may be caused by the use of commas or double quotes within cells. Attention\nto detail is very important in systematics. If you repeatably get this error,\nyou may wish to change careers.\n\n");
+							} elsif($lineCounter > 2){
+								if(($fieldCounter != $#fields) && ($#fields >= 1)){
+									die("It appears that rows have different number of columns in $infile[$f] (line $lineCounter).\nThis may be caused by the use of commas or double quotes within cells. Attention\nto detail is very important in systematics. If you repeatably get this error,\nyou may wish to change careers.\n\n");
 									}
-								$partSize->[$f] = $#fields;
-								for(my $c = 0; $c <= $#fields; $c++){
-									if($c == 0){
-										$fields[$c] =~ tr/ \/\-/\_\_\_/;
-										$fields[$c] =~ tr/[A-z][0-9]\_\.//cd;									
-										}
-									$matrix->[$lineCounter-2][$c] = $fields[$c];
+								$matrix->[$lineCounter-3][0] = $fields[0];	
+								for(my $c = 1; $c <= $#fields; $c++){								
+									$matrix->[$lineCounter-3][$c] = ' ' . $fields[$c] . ' ';
 									}
 								}
 						$lineCounter++;
@@ -344,30 +350,36 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 					my $stateCounter = 0;
 					for(my $e = $#{$matrix}; $e >= 0; $e--){
 						if($matrix->[$e][$d] =~ m/"/){
-							die("It appears that rows have different number of columns in $infile[$f].\nThis may be caused by the use of commas or double quotes within cells. Attention\nto detail is very important in systematics. If you repeatably get this error,\nyou may wish to change careers.\n\n");
+							die("It appears that rows were read with different number of columns in $infile[$f] (line $e).\nThis may be caused by the use of commas or double quotes within cells. Attention\nto detail is very important in systematics. If you repeatably get this error,\nyou may wish to change careers.\n\n");
 							}
-						if(($matrix->[$e][$d] eq '?') || ($matrix->[$e][$d] eq '-')){
+						if(($matrix->[$e][$d] eq ' ? ') || ($matrix->[$e][$d] eq ' _ ')){
+							$matrix->[$e][$d] =~ tr/\_/\-/;
+							$matrix->[$e][$d] =~ tr/ //d;
 							next;							
 							}
 						if($add->[$f][$d-1] == 1){ ### character is additive
 							my @tokens = split(/ /, $matrix->[$e][$d]);
 							$matrix->[$e][$d] = ();
 							for(my $t = $#tokens; $t >= 0; $t--){
-								if(exists($statesOrder->{$tokens[$t]})){
-									$matrix->[$e][$d] .= $statesOrder->{$tokens[$t]};
-									$charStates->{$tokens[$t]} = $statesOrder->{$tokens[$t]};
-									} else {
-										die("Every state is sacred. State '$tokens[$t]' is not included in the additivity row for character $d.\n\n");										
-										}
+								if(length($tokens[$t])){
+									if(exists($statesOrder->{$tokens[$t]})){
+										$matrix->[$e][$d] .= $statesOrder->{$tokens[$t]};
+										$charStates->{$tokens[$t]} = $statesOrder->{$tokens[$t]};
+										} else {
+											die("Every state is sacred. State '$tokens[$t]' is not included in the additivity row for character $d.\n\n");										
+											}
+									}	
 								}
 							} else{ ### character is non-additive
 								my @tokens = split(/ /, $matrix->[$e][$d]);
 								for(my $t = $#tokens; $t >= 0; $t--){
-									if(!exists($charStates->{$tokens[$t]})){
-										$charStates->{$tokens[$t]} = $stateCounter;
-										$stateCounter++;
+									if(length($tokens[$t])){
+										if(!exists($charStates->{$tokens[$t]})){
+											$charStates->{$tokens[$t]} = $stateCounter;
+											$stateCounter++;
+											}
+										$matrix->[$e][$d] =~ s/ $tokens[$t] / $charStates->{$tokens[$t]} /g;
 										}
-									$matrix->[$e][$d] =~ s/$tokens[$t]/$charStates->{$tokens[$t]}/g;
 									}
 								}
 						$matrix->[$e][$d] =~ tr/ //d;
@@ -404,7 +416,7 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 					}	
 				$morpho->[$f] = 1;
 				next;
-				} else {
+				} else { ############################### READ FASTA
 					if($codeIndel && !$quoteIndel){
 						$quoteIndel = "\nindel characters coded using 2xread using the \"simple gap coding\" method of SIMMONS AND OCHOTERENA. 2000. Gaps as characters in sequence-based phylogenetic analysis. Systematic Biology 49: 369-381";
 						}	
