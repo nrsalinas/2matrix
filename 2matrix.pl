@@ -787,7 +787,7 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 							}
 					$dataType .= ($chars + 1) . '-' . ($chars + $partSize->[$r]) . ',standard:' . ($chars + $partSize->[$r] + 1) . '-' . ($chars + $partSize->[$r] + $partIndels->[$r]);
 					$chars += ($partIndels->[$r] + $partSize->[$r]);
-					$chunks .= 'chunk' . $partCounter . ': Part' . $partCounter . ', chunck' . ($partCounter + 1) . ': Part' . ($partCounter + 1);
+					$chunks .= 'chunk' . $partCounter . ': Part' . $partCounter . ', chunk' . ($partCounter + 1) . ': Part' . ($partCounter + 1);
 					$partCounter += 2;
 					if($r > 0){
 						$chunks .= ', ';
