@@ -431,6 +431,7 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 								$matrix->[$terms][0] = $line;
 								if(length($seq)){
 									$seq = uc($seq);
+									$seq =~ tr/\?/\-/;
 									$seq =~ tr/ABCDEFGHIKLMNOPQRSTUVWXYZ\-//cd;
 									if($seq =~ m/E|F|I|L|O|P|Q|X|Z/){
 										$aa->[$f] = 1;
@@ -448,6 +449,7 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 							}
 						}
 					$seq = uc($seq);
+					$seq =~ tr/\?/\-/;
 					$seq =~ tr/ABCDEFGHIKLMNOPQRSTUVWXYZ\-//cd;
 					if($seq =~ m/E|F|I|L|O|P|Q|X|Z/){
 						$aa->[$f] = 1;
@@ -549,9 +551,13 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 
 		
 		############################### FORMAT DATA
+		my $charsCounter = $#{$matrix->[$#{$matrix}]};
 		for(my $k = $#{$matrix}; $k >= 0; $k--){
 			if(exists($tTpTd->{$matrix->[$k][0]}->{$infile[$f]})){
 				die("Terminals must have unique names ($matrix->[$k][0] is duplicated in $infile[$f])!\n");			
+				}
+			if($charsCounter != $#{$matrix->[$k]}){
+				die("Terminals do not have the same number of characters in matrix $infile[$f]!\n");
 				}
 			for(my $j = 1; $j <= $#{$matrix->[$k]}; $j++){
 				$tTpTd->{$matrix->[$k][0]}->{$infile[$f]} .= $matrix->[$k][$j];
@@ -1098,8 +1104,8 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 		############################### PRINT INFO
 		print("\nA PERL script for merging and translating FASTA alignments into XREAD, extended\n");
 		print("PHYLIP and NEXUS formats with indel characters coded using the 'simple' gap\n");
-		print("coding method of SIMMONS, M. P., AND H. OCHOTERENA. 2000. Gaps as characters\n");
-		print("in sequence-based phylogenetic analysis. Systematic Biology 49: 369-381.\n\n");
+		print("coding method of Simmons and Ochoterena (2000; Gaps as characters\n");
+		print("in sequence-based phylogenetic analysis. Systematic Biology 49: 369-381).\n\n");
 		print("USAGE: 2matrix.pl -i <infile_1> [ -i <infile_2>... ] -n <root-name> [ -d ]\n");
 		print("\t -o n|x|p [ -s <stem-name_1> [ -s <stem-name_2> ] ... ]\n\n");
 		print("WHERE:\n\n\t-d\tDo NOT code indels.\n\n");
@@ -1113,7 +1119,9 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 		print("\t\tcompatible with both Garli (<root-name>.garli.nex) and MrBayes\n");
 		print("\t\t(<root-name>.mrbayes.nex) will be created. Additionally, a\n");
 		print("\t\tGarli configuration file will be automatically generated\n\t\t(<root-name>.conf).\n\n");
-		print("\t-s\t<stem-name> for naming sequence characters (XREAD and NEXUS\n\t\tonly).\n\n");  
+		print("\t-s\t<stem-name> for naming sequence characters (XREAD and NEXUS\n\t\tonly).\n\n"); 
+		print("If you use this program please cite Salinas and Little (2014; 2matrix: a utility\n");
+		print("for indel coding and phylogenetic matrix concatenation. Applications in Plant\nSciences 2: 1300083).\n\n");
 		}
 		
 		
