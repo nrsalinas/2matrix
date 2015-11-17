@@ -30,7 +30,7 @@ e. The second row should contain additivity information. If the character is non
 
 f. Do not include commas within the text of a cell.
 
-
+g. Terminals are not required to be present in every input file and do not have to be listed in the same order.
 
 ==================================================
 EXAMPLE
@@ -45,7 +45,6 @@ A reconstruction of the matrix used by Doyle and Endress (2000. Morphological ph
 WARNINGS
 
 2matrix assumes that the input files use the same new line characters as your operating system. Inconsistent use of new line characters will result in unusable output. Please pay particular attention to new line characters when moving files between computers or when using GUI programs on OS X and Windows.
-
 
 Besides Garli 2.0 and MrBayes 3.2.1, NEXUS output is not guaranteed to be read and executed by any other program that accepts NEXUS files (e.g. PAUP 4b*).  
 
