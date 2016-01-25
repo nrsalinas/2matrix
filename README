@@ -3,14 +3,12 @@
 2matrix.pl is a Perl script for merging and translating phylogenetic datasets. Input datasets can be either DNA/RNA/amino acid alignments (FASTA format) or morphological matrices (a xread file or a csv table, see below for the specification of the latter). Available output formats include xread, extended PHYLIP (RAxML) and NEXUS (the latter being compatible with Garli and MrBayes). Indel characters can be coded using the "simple" gap coding method of Simmons and Ochoterena (2000. Gaps as characters in sequence-based phylogenetic analysis. Systematic Biology 49: 369-381).
 
 
-
 ==================================================
 REQUIREMENTS
 
 Perl interpreter.
 
 Systematic wisdom.
-
 
 
 ==================================================
@@ -30,7 +28,6 @@ e. The second row should contain additivity information. If the character is non
 
 f. Do not include commas within the text of a cell.
 
-g. Terminals are not required to be present in every input file and do not have to be listed in the same order.
 
 ==================================================
 EXAMPLE
@@ -38,7 +35,6 @@ EXAMPLE
 A reconstruction of the matrix used by Doyle and Endress (2000. Morphological phylogenetic analysis of basal angiosperms: comparison and combination with molecular data. International Journal of Plant Sciences 161: S121-S153) is included in the distribution. The files morphology-example.csv and morphology-example.ss include the morphological data (csv and xread format, respectively), sequences are included in 18S-example.fasta, atpB-example.fasta, and rbcL-example.fasta. To create the combined matrix in TNT format, invoke the command:
 
 2matrix.pl -i morphology-example.csv -i 18S-example.fasta -i atpB-example.fasta -i rbcL-example.fasta -s 18S -s atpB -s rbcL -o x -n example -d
-
 
 
 ==================================================
@@ -52,6 +48,7 @@ Besides Garli 2.0 and MrBayes 3.2.1, NEXUS output is not guaranteed to be read a
 
 Output xread files are generally readable by NONA, WincClada, TNT, etc., but files that contain amino acid sequences can only be read by TNT.
 
+Terminals are not required to be present in every input file and do not have to be listed in the same order.
 
 
 ==================================================
@@ -62,7 +59,6 @@ dlittle@nybg.org
 
 Nelson R. Salinas
 nsalinas@nybg.org
-
 
 
 ==================================================
