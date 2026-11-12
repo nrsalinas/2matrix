@@ -763,17 +763,38 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 		my $terms = ($#taxa + 1);
 		my $garliBuffer = "#nexus\n[$quote]\nbegin taxa;\n\tdimensions ntax=$terms;\n\ttaxlabels\n";
 		my $mrBayesBuffer = "#nexus\n[$quote]\nbegin taxa;\n\tdimensions ntax=$terms;\n\ttaxlabels\n";
-		my $setsBlock = ();
+		my $mrBayesCharsets = ();
+		my @mrBayesPartitionNames = ();
+		my %usedMrBayesNames = ();
 		my $dataType = '(';
 		my $ordModels = ();
 
 		###############################  sets block
-		$setsBlock .= "begin sets;\n";
+
 		my $chunks = ();
 		my $partCounter = 1;
 		for(my $r = $#infile; $r >= 0; $r--){
-			if($morpho->[$r] == 1){
-				$setsBlock .= "\tcharset Part" . $partCounter . ' = ' . ($chars + 1) . '-' . ($chars + $partSize->[$r]) . "\n";
+            # Prefer the user-supplied -s stem; otherwise use the input basename.
+            my $locus = $stem{$infile[$r]};
+            if(!defined($locus) || $locus eq 'sequence' || $locus eq ''){
+                $locus = $infile[$r];
+                $locus =~ s{.*[\\/]}{};
+                $locus =~ s/\.[^.]+$//;
+            }
+            $locus =~ s/[^A-Za-z0-9_]/_/g;
+            $locus = 'locus' if $locus eq '';
+            $locus = 'locus_' . $locus if $locus !~ /^[A-Za-z]/;
+            # Reserve both the locus and its potential _gaps counterpart.
+            my $base = $locus;
+            my $suffix = 2;
+            while($usedMrBayesNames{lc($locus)} || $usedMrBayesNames{lc($locus . '_gaps')}){
+                $locus = $base . '_' . $suffix++;
+            }
+            $usedMrBayesNames{lc($locus)} = 1;
+            $usedMrBayesNames{lc($locus . '_gaps')} = 1;
+            if($morpho->[$r] == 1){
+                push(@mrBayesPartitionNames, $locus);
+				$mrBayesCharsets .= "\tcharset $locus = " . ($chars + 1) . '-' . ($chars + $partSize->[$r]) . ";\n";
 				$dataType .= 'standard:' . ($chars + 1) . '-' . ($chars + $partSize->[$r]);
 				$chars += $partSize->[$r];
 				$chunks .= 'chunk' . $partCounter . ': Part' . $partCounter;
@@ -785,13 +806,14 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 						$chunks .= ';';
 						}
 				} elsif(($codeIndel == 1) && ($partIndels->[$r] >= 1)){
-					$setsBlock .= "\tcharset Part" . $partCounter . ' = ' . ($chars + 1) . '-' . ($chars + $partSize->[$r]) . "\n\tcharset Part" . ($partCounter + 1) . ' = ' . ($chars + $partSize->[$r] + 1) . '-' . ($chars + $partSize->[$r] + $partIndels->[$r]) . "\n";
+                    push(@mrBayesPartitionNames, $locus, $locus . '_gaps');
+					$mrBayesCharsets .= "\tcharset $locus = " . ($chars + 1) . '-' . ($chars + $partSize->[$r]) . ";\n\tcharset ${locus}_gaps = " . ($chars + $partSize->[$r] + 1) . '-' . ($chars + $partSize->[$r] + $partIndels->[$r]) . ";\n";
 					if($aa->[$r]){
 						$dataType .= 'protein:';
 						}else{
 							$dataType .= 'DNA:';
 							}
-					$dataType .= ($chars + 1) . '-' . ($chars + $partSize->[$r]) . ',standard:' . ($chars + $partSize->[$r] + 1) . '-' . ($chars + $partSize->[$r] + $partIndels->[$r]);
+					$dataType .= ($chars + 1) . '-' . ($chars + $partSize->[$r]) . ',restriction:' . ($chars + $partSize->[$r] + 1) . '-' . ($chars + $partSize->[$r] + $partIndels->[$r]);
 					$chars += ($partIndels->[$r] + $partSize->[$r]);
 					$chunks .= 'chunk' . $partCounter . ': Part' . $partCounter . ', chunk' . ($partCounter + 1) . ': Part' . ($partCounter + 1);
 					$partCounter += 2;
@@ -802,7 +824,8 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 							$chunks .= ';';
 							}
 					} else{
-						$setsBlock .= "\tcharset Part" . $partCounter . ' = ' . ($chars + 1) . '-' . ($chars + $partSize->[$r]) . "\n";
+                        push(@mrBayesPartitionNames, $locus);
+						$mrBayesCharsets .= "\tcharset $locus = " . ($chars + 1) . '-' . ($chars + $partSize->[$r]) . ";\n";
 						if($aa->[$r]){
 							$dataType .= 'protein:';
 							}else{
@@ -820,7 +843,7 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 								}
 						}
 			}
-		$setsBlock .= "\tcharpartition default = $chunks\nend;\n";
+
 		$dataType .= ')';
 
 		############################### get max label size
@@ -1025,7 +1048,7 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 		$mrBayesBuffer .= $dataBlock;
 		$dataBlock = ();
 
-		$mrBayesBuffer .= $setsBlock;
+
 
 		my $adds = ();
 		my $j = 0;
@@ -1042,7 +1065,17 @@ if(($#infile != -1) && ($xread || $nexus || $phylip) && length($outputName)){ ##
 					}
 			}
 		
-		my $mrBayesBlock = "\nbegin mrbayes;\n	log start filename= $outputName.log;\n";
+		# Keep MrBayes log filenames independent of output directory paths and spaces.
+		my $logName = $outputName;
+		$logName =~ s{.*[\\/]}{};
+		$logName =~ s/[^A-Za-z0-9_.-]/_/g;
+		$logName = '2matrix' unless length($logName);
+		my $mrBayesBlock = "\nbegin mrbayes;\n";
+        $mrBayesBlock .= $mrBayesCharsets;
+        my $nPartitions = scalar(@mrBayesPartitionNames);
+        $mrBayesBlock .= "\tpartition favored = $nPartitions: " . join(', ', @mrBayesPartitionNames) . ";\n";
+        $mrBayesBlock .= "\tset partition = favored;\n";
+        $mrBayesBlock .= "\tlog start filename=$logName.log;\n";
 		if($adds){
 			$mrBayesBlock .= "\tctype ordered: $adds;\n";
 			}
